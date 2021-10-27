@@ -2,12 +2,15 @@ package com.example.video.activity;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -22,10 +25,12 @@ import java.util.TimerTask;
 
 public class MainActivity extends BaseActivity {
 
-
-    private TextView timeText;
-    private Timer time = new Timer();
     int initTime=3;
+
+    private TextView timeText,textView ;
+
+    private Timer time = new Timer();
+
     private Context context;
 
     public static final String TAG="MainActivity";
@@ -39,51 +44,53 @@ public class MainActivity extends BaseActivity {
         //获取上下文
         context=this;
 
-        //3秒后自动进入程序
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (context != null) {
-                    //TODO:先加载数据;
-                    FromToPager.toHomePager(context);
-                    //跳转后销毁活动
-                    finish();
-                }
+        //线程内的内容，3秒后执行
 
-            }
-        }, 3100);
+        handler.postDelayed(new MyRunable(), 3100);
+
+        //每隔一秒刷新一次
+        new Thread(new TimeRunable()).start();
     }
 
 
     private void getViewId() {
 
         timeText = findViewById(R.id.timeText);
-        //每隔一秒修改显示倒计时time.schedule()第二个参数代表页面活动
-        //完全激活后多少*1000秒开始倒计时
+
+        textView = findViewById(R.id.jumpText);
 
 
-        //实现改变UI倒计时;
-        time.schedule(new TimerTask() {
+        textView.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
-                //线程不能直接对UI处理；
-                Message message = new Message();
-                message.what = 1;
-                //2.相当于handler
-                handler.sendMessage(message);
+            public void onClick(View view) {
+                FromToPager.toHomePager(context);
+                finish();
+                onDestroy();
             }
-        }, 0, 3000);
-
+        });
     }
 
 
+        class TimeRunable implements Runnable{
 
-    private Handler handler = new Handler(Looper.myLooper()) {
+            @Override
+            public void run() {
+                Message message = new Message();
+                message.what = 0;
+                handler.sendMessage(message);
+                if(initTime>0){
+                    handler.postDelayed(new TimeRunable(),1000);
+                }
+            }
+        }
+
+        private Handler handler = new Handler(Looper.myLooper()) {
 
         @Override
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what){
                 case 0:
+                    Log.e(TAG, "handleMessage: "+initTime);
                     timeText.setText(initTime + "s");
                     initTime--;
                     break;
@@ -95,5 +102,17 @@ public class MainActivity extends BaseActivity {
 
 
 
+    class MyRunable implements Runnable{
+
+        @Override
+        public void run() {
+            if (context != null) {
+
+                FromToPager.toHomePager(context);
+                //跳转后销毁活动
+                finish();
+            }
+        }
+    }
 
 }
